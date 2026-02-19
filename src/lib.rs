@@ -1,5 +1,6 @@
 pub use rcket_macros::Node;
 
 pub trait Node {
-    fn parse(input: &str) -> todo!();
+    type Output;
+    fn parse(input: &str) -> Option<Self::Output>;
 }

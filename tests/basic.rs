@@ -1,6 +1,6 @@
 use rcket::Node;
 
-#[derive(Node, Debug)]
+#[derive(Node, Debug, PartialEq)]
 enum BinaryOperator {
     #[token("+")]
     Add,
@@ -12,7 +12,7 @@ enum BinaryOperator {
     Divide,
 }
 
-#[derive(Node, Debug)]
+#[derive(Node, Debug, PartialEq)]
 enum Literal {
     #[regex(r"\d+")]
     Int(i32),
@@ -20,7 +20,7 @@ enum Literal {
     Float(f32),
 }
 
-#[derive(Node, Debug)]
+#[derive(Node, Debug, PartialEq)]
 enum Expression {
     Literal(Literal),
 }
@@ -31,7 +31,7 @@ struct BinaryOperation(Box<Expression>, BinaryOperator, Box<Expression>);
 #[test]
 fn parse_token() {
     let (first, op, second) = BinaryOperation::parse("5+2").unwrap();
-    assert_eq!(first, Literal::Int(5));
+    assert_eq!(*first, Expression::Literal(Literal::Int(5)));
     assert_eq!(op, BinaryOperator::Add);
-    assert_eq!(second, Literal::Int(2));
+    assert_eq!(*second, Expression::Literal(Literal::Int(2)));
 }

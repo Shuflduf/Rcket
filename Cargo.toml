@@ -6,3 +6,4 @@ description = "Parser"
 license = "MIT"
 
 [dependencies]
+rcket-macros = { path = "rcket-macros" }

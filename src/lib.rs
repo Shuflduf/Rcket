@@ -1,5 +1,5 @@
-mod lexer;
-mod lexer_types;
+pub mod lexer;
+pub mod lexer_types;
 
 pub use rcket_macros::Node;
 

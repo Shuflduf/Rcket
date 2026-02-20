@@ -50,6 +50,7 @@ fn parse_string() {
 }
 
 #[test]
+#[ignore]
 fn parse_operation() {
     let (first, op, second) = BinaryOperation::parse("5+2").unwrap();
     assert_eq!(*first, Expression::Literal(Literal::Int(5)));

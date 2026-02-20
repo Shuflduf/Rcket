@@ -76,26 +76,17 @@ fn parse_float() {
 #[test]
 fn parse_string() {
     let value = Expression::parse(&Token::lex(r#""froging it""#)).unwrap();
-    assert_eq!(value, Expression::String("froging it".to_string()));
+    assert_eq!(value.to_string(), "(String froging it)");
 }
 
 #[test]
 fn parse_operation() {
-    let (BinaryOperation(first, op, second), _) =
-        BinaryOperation::parse_one(&Token::lex("5+2")).unwrap();
-    assert_eq!(*first, Expression::Int(5));
-    assert_eq!(op, BinaryOperator::Add);
-    assert_eq!(*second, Expression::Int(2));
+    let (node, _) = BinaryOperation::parse_one(&Token::lex("5+2")).unwrap();
+    assert_eq!(node.to_string(), "(BinaryOperation (Int 5) Add (Int 2))");
 }
 
 #[test]
 fn parse_variable_dec() {
     let node = Statement::parse(&Token::lex("int thing = 5")).unwrap();
     assert_eq!(node.to_string(), "(VariableDeclaration Int thing (Int 5))")
-}
-
-#[test]
-fn display_operation() {
-    let (node, _) = BinaryOperation::parse_one(&Token::lex("5+2")).unwrap();
-    assert_eq!(node.to_string(), "(BinaryOperation (Int 5) Add (Int 2))");
 }

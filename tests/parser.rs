@@ -17,11 +17,6 @@ enum VarType {
 }
 
 #[derive(Node, Debug, PartialEq)]
-enum Identifier {
-    #[extract(Literal::Identifier)]
-    Name(String),
-}
-#[derive(Node, Debug, PartialEq)]
 enum BinaryOperator {
     #[token(Symbol::Plus)]
     Add,
@@ -48,7 +43,12 @@ enum Expression {
 }
 
 #[derive(Node, Debug, PartialEq)]
-struct VariableDeclaration(VarType, Identifier, #[token(Symbol::Equals)] (), Expression);
+struct VariableDeclaration(
+    VarType,
+    #[extract(Literal::Identifier)] String,
+    #[token(Symbol::Equals)] (),
+    Expression,
+);
 
 #[derive(Node, Debug, PartialEq)]
 enum Statement {
@@ -89,8 +89,13 @@ fn parse_operation() {
 }
 
 #[test]
+fn parse_variable_dec() {
+    let node = Statement::parse(&Token::lex("int thing = 5")).unwrap();
+    assert_eq!(node.to_string(), "(VariableDeclaration Int thing (Int 5))")
+}
+
+#[test]
 fn display_operation() {
     let (node, _) = BinaryOperation::parse_one(&Token::lex("5+2")).unwrap();
-    panic!("{node}");
     assert_eq!(node.to_string(), "(BinaryOperation (Int 5) Add (Int 2))");
 }

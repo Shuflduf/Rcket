@@ -69,6 +69,7 @@ fn derive_struct(
         field_bindings.push(binding.clone());
 
         let token_attribute = field.attrs.iter().find(|attribute| attribute.path().is_ident("token"));
+        let extract_attribute = field.attrs.iter().find(|attribute| attribute.path().is_ident("extract"));
 
         if let Some(token_attribute) = token_attribute {
             let path = token_attribute.parse_args::<Path>().unwrap();
@@ -81,6 +82,13 @@ fn derive_struct(
             parse_steps.push(quote! {
                 let tokens = if let Some((#token_pattern, rest)) = tokens.split_first() { rest } else { return None; };
                 let #binding = ();
+            });
+        } else if let Some(extract_attribute) = extract_attribute {
+            let path = extract_attribute.parse_args::<Path>().unwrap();
+            parse_steps.push(quote! {
+                let (#binding, tokens) = if let Some((#token_type::Literal(#path(value)), rest)) = tokens.split_first() {
+                    (value.clone(), rest)
+                } else { return None; };
             });
         } else if let Some(inner_type) = unwrap_box(&field.ty) {
             parse_steps.push(quote! {

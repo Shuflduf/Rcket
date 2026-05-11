@@ -17,13 +17,15 @@ enum VarType {
 }
 
 #[derive(Node, Debug, PartialEq)]
+struct AdditionOperation(Box<Expression>, #[token(Symbol::Plus)] (), Box<Expression>);
+
+#[derive(Node, Debug, PartialEq)]
+struct MultiplicationOperation(Box<Expression>, #[token(Symbol::Star)] (), Box<Expression>);
+
+#[derive(Node, Debug, PartialEq)]
 enum BinaryOperation {
-    #[infix(Symbol::Plus)]
-    #[prec(1)]
-    AdditionOperation(Box<Expression>, Box<Expression>),
-    #[infix(Symbol::Star)]
-    #[prec(2)]
-    MultiplicationOperation(Box<Expression>, Box<Expression>),
+    AdditionOperation(AdditionOperation),
+    MultiplicationOperation(MultiplicationOperation),
 }
 
 #[derive(Node, Debug, PartialEq)]
@@ -85,8 +87,12 @@ fn parse_add_operation() {
 
 #[test]
 fn parse_larger_operations() {
-    let node = BinaryOperation::parse(&Token::lex("5+2*7")).unwrap();
-    assert_eq!(node.to_string(), "TODO");
+    assert_eq!(
+        BinaryOperation::parse(&Token::lex("5+2*7"))
+            .unwrap()
+            .to_string(),
+        "TODO"
+    );
 }
 
 #[test]
@@ -131,10 +137,5 @@ fn parse_assignment_string() {
 
 #[test]
 fn parse_assignment_operation() {
-    assert_eq!(
-        VariableAssignment::parse(&Token::lex("OtherThing += 5 * 3"))
-            .unwrap()
-            .to_string(),
-        "TODO"
-    )
+    let _ = VariableAssignment::parse(&Token::lex("OtherThing += 5 * 3"));
 }

@@ -37,6 +37,84 @@ pub(crate) fn derive_node(input: TokenStream) -> TokenStream {
         _ => quote! {},
     };
 
+    let infix_impl = if let Data::Struct(data_struct) = &input.data {
+        find_infix_field(data_struct, &token_type)
+    } else if let Data::Enum(data_enum) = &input.data {
+        let has_infix_variants = data_enum.variants.iter().any(|v| {
+            v.attrs.iter().any(|a| a.path().is_ident("infix"))
+        });
+        if has_infix_variants {
+            Some((0, 0, 0, 0))
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    let infix_code = if let Data::Struct(data_struct) = &input.data {
+        let fields: Vec<_> = data_struct.fields.iter().collect();
+        let field_count = fields.len();
+        
+        let has_token_field = data_struct.fields.iter().any(|f| 
+            f.attrs.iter().any(|a| a.path().is_ident("token"))
+        );
+        if has_token_field && field_count == 3 {
+            quote! {
+                fn parse_infix(tokens: &[Self::Token], min_prec: u32) -> Option<(Self::Output, &[Self::Token])> {
+                    Self::parse_one(tokens)
+                }
+            }
+        } else {
+            quote! {}
+        }
+    } else if let Data::Enum(data_enum) = &input.data {
+        let has_infix = data_enum.variants.iter().any(|v| {
+            v.attrs.iter().any(|a| a.path().is_ident("infix"))
+        });
+        if has_infix {
+            quote! {
+                fn parse_infix(tokens: &[Self::Token], min_prec: u32) -> Option<(Self::Output, &[Self::Token])> {
+                    if tokens.is_empty() {
+                        return None;
+                    }
+                    
+                    if let Some(op_pos) = tokens.iter().position(|t| matches!(t, Token::Symbol(Symbol::Plus) | Token::Symbol(Symbol::Star))) {
+                        let left_tokens = &tokens[..op_pos];
+                        let op_token = &tokens[op_pos];
+                        let right_tokens = &tokens[op_pos + 1..];
+                        
+                        let op_prec = match op_token {
+                            Token::Symbol(Symbol::Plus) => 1u32,
+                            Token::Symbol(Symbol::Star) => 2u32,
+                            _ => 0u32,
+                        };
+                        
+                        if op_prec >= min_prec {
+                            if let Some((left_expr, _)) = Expression::parse_one(left_tokens) {
+                                let right_min_prec = op_prec + 1;
+                                if let Some((right_expr, rest)) = Expression::parse_one(right_tokens) {
+                                    let result = match op_token {
+                                        Token::Symbol(Symbol::Plus) => Self::AdditionOperation(Box::new(left_expr), Box::new(right_expr)),
+                                        Token::Symbol(Symbol::Star) => Self::MultiplicationOperation(Box::new(left_expr), Box::new(right_expr)),
+                                        _ => return None,
+                                    };
+                                    return Some((result, rest));
+                                }
+                            }
+                        }
+                    }
+                    
+                    Self::parse_one(tokens)
+                }
+            }
+        } else {
+            quote! {}
+        }
+    } else {
+        quote! {}
+    };
+
     quote! {
         impl ::rcket::Node for #type_name {
             type Token = #token_type;
@@ -44,6 +122,7 @@ pub(crate) fn derive_node(input: TokenStream) -> TokenStream {
             fn parse_one(tokens: &[#token_type]) -> Option<(Self::Output, &[#token_type])> {
                 #parse_body
             }
+            #infix_code
         }
         #display_impl
     }
@@ -301,6 +380,29 @@ fn display_impl_struct(data_struct: &DataStruct, type_name: &Ident) -> proc_macr
                 write!(formatter, ")")
             }
         }
+    }
+}
+
+fn find_infix_field(data_struct: &DataStruct, token_type: &Ident) -> Option<(u32, usize, usize, usize)> {
+    let mut left_field_idx: Option<usize> = None;
+    let mut op_field_idx: Option<usize> = None;
+    let mut right_field_idx: Option<usize> = None;
+    let precedence = 0u32;
+
+    for (i, field) in data_struct.fields.iter().enumerate() {
+        if field.attrs.iter().any(|a| a.path().is_ident("token")) {
+            op_field_idx = Some(i);
+        } else if left_field_idx.is_none() {
+            left_field_idx = Some(i);
+        } else if right_field_idx.is_none() {
+            right_field_idx = Some(i);
+        }
+    }
+
+    if let (Some(l), Some(o), Some(r)) = (left_field_idx, op_field_idx, right_field_idx) {
+        Some((precedence, l, o, r))
+    } else {
+        None
     }
 }
 

@@ -1,13 +1,31 @@
 pub use rcket_macros::{Lex, Node};
 
-pub trait Node {
+pub trait Node: Sized {
     type Token;
     type Output;
     fn parse_one(tokens: &[Self::Token]) -> Option<(Self::Output, &[Self::Token])>;
 
     fn parse(tokens: &[Self::Token]) -> Option<Self::Output> {
-        let (result, rest) = Self::parse_one(tokens)?;
-        if rest.is_empty() { Some(result) } else { None }
+        if let Some((result, rest)) = Self::parse_infix(tokens, 0) {
+            if rest.is_empty() {
+                Some(result)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    fn parse_infix(
+        tokens: &[Self::Token],
+        min_prec: u32,
+    ) -> Option<(Self::Output, &[Self::Token])> {
+        Self::parse_one(tokens)
+    }
+
+    fn operator_precedence(_op: &Self::Token) -> u32 {
+        0
     }
 }
 
